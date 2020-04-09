@@ -19,6 +19,7 @@ class ParameterForm extends StatefulWidget {
   final String initialTitle;
   final OnDelete onDelete;
   final StreamController<String> titleStreamController;
+  final List<String> parameterTypes;
 
   ParameterForm(
       {
@@ -26,6 +27,7 @@ class ParameterForm extends StatefulWidget {
         @required this.data,
         @required this.initialTitle,
         @required this.titleStreamController,
+        @required this.parameterTypes,
         this.onDelete,
       }
   ) : super(key: key);
@@ -49,103 +51,34 @@ class _ParameterFormState extends State<ParameterForm> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(top: 16.0),
-      child: Form(
+      child: _buildForm(),
+    );
+  }
+
+  Form _buildForm() {
+    return Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            AppBar(
-              leading: Container(),
-              elevation: 0,
-              title: _buildTitle(),
-              backgroundColor: Theme.of(context).accentColor,
-              centerTitle: true,
-              actions: _buildAppBarActions(),
-            ),
+            _buildAppBar(),
             Padding(
               padding: EdgeInsets.only(left: 16, right: 16, top: 16),
               child: Column(
                 children: <Widget>[
-                  TextFormField(
-                    decoration: InputDecoration(
-                        hintText: 'parameterName',
-                        labelText: 'Название'
-                    ),
-                    validator: _validateLowerCamelCase,
-                    onSaved: (String value) {
-                      widget.data.name = value;
-                    },
-                    inputFormatters: [
-                      WhitelistingTextInputFormatter(
-                          RegExp("[A-Za-z]")
-                      )
-                    ],
-                  ),
-                  TextFormField(
-                    decoration: InputDecoration(
-                        hintText: 'Описание параметра',
-                        labelText: 'Описание'
-                    ),
-                    validator: _validateEmptyText,
-                    onSaved: (String value) {
-                      widget.data.description = value;
-                    }
-                  ),
+                  _buildNameTextFormField(),
+                  _buildDescriptionTextFormField(),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Container(
                         width: MediaQuery.of(context).size.width * 0.7,
-                        child: DropDownFormField(
-                          titleText: 'Тип переменной',
-                          hintText: 'Пожалуйста, выберите один',
-                          value: widget.data.type,
-                          onSaved: (value) {
-                            setState(() {
-                              widget.data.type = value;
-                            });
-                          },
-                          onChanged: (value) {
-                            setState(() {
-                              widget.data.type = value;
-                            });
-                          },
-                          dataSource: [
-                            {
-                              "display": "String",
-                              "value": "String"
-                            },
-                            {
-                              "display": "Double",
-                              "value": "Double"
-                            },
-                            {
-                              "display": "Int",
-                              "value": "Int"
-                            }
-                          ],
-                          textField: 'display',
-                          valueField: 'value',
-                          filled: false,
+                        child: _buildParameterTypesDropDownFormField(
+                          widget.parameterTypes
                         ),
                       ),
                       Expanded(
-                        child: CheckboxListTile(
-                          value: widget.data.isOptional,
-                          onChanged: (value) {
-                            setState(() {
-                              widget.data.isOptional = !widget.data.isOptional;
-                            });
-                          },
-                          title: Text(
-                            "Опциональность",
-                            style: TextStyle(
-                                fontSize: 14.0
-                            ),
-                          ),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          activeColor: Colors.green,
-                        ),
+                        child: _buildOptionalCheckboxListTile(),
                       )
                     ],
                   )
@@ -154,7 +87,17 @@ class _ParameterFormState extends State<ParameterForm> {
             )
           ],
         )
-      ),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      leading: Container(),
+      elevation: 0,
+      title: _buildTitle(),
+      backgroundColor: Theme.of(context).accentColor,
+      centerTitle: true,
+      actions: _buildAppBarActions(),
     );
   }
 
@@ -184,6 +127,86 @@ class _ParameterFormState extends State<ParameterForm> {
 
         return Text(title);
       }
+    );
+  }
+
+  TextFormField _buildNameTextFormField() {
+    return TextFormField(
+      decoration: InputDecoration(
+          hintText: 'parameterName',
+          labelText: 'Название'
+      ),
+      validator: _validateLowerCamelCase,
+      onSaved: (String value) {
+        widget.data.name = value;
+      },
+      inputFormatters: [
+        WhitelistingTextInputFormatter(
+            RegExp("[A-Za-z]")
+        )
+      ],
+    );
+  }
+
+  TextFormField _buildDescriptionTextFormField() {
+    return TextFormField(
+        decoration: InputDecoration(
+            hintText: 'Описание параметра',
+            labelText: 'Описание'
+        ),
+        validator: _validateEmptyText,
+        onSaved: (String value) {
+          widget.data.description = value;
+        }
+    );
+  }
+
+  DropDownFormField _buildParameterTypesDropDownFormField(
+      List<String> parameterTypes
+  ) {
+    List<Map<String, String>> dataSource = parameterTypes
+        .map((parameterType) {
+          return {'display': parameterType, 'value': parameterType };
+        })
+        .toList();
+
+    return DropDownFormField(
+      titleText: 'Тип переменной',
+      hintText: 'Пожалуйста, выберите один',
+      value: widget.data.type,
+      onSaved: (value) {
+        setState(() {
+          widget.data.type = value;
+        });
+      },
+      onChanged: (value) {
+        setState(() {
+          widget.data.type = value;
+        });
+      },
+      dataSource: dataSource,
+      textField: 'display',
+      valueField: 'value',
+      filled: false,
+    );
+  }
+
+  CheckboxListTile _buildOptionalCheckboxListTile() {
+    return CheckboxListTile(
+      value: widget.data.isOptional,
+      onChanged: (value) {
+        setState(() {
+          widget.data.isOptional = !widget.data.isOptional;
+        });
+      },
+      title: Text(
+        "Опциональность",
+        style: TextStyle(
+            fontSize: 14.0
+        ),
+      ),
+      controlAffinity: ListTileControlAffinity.leading,
+      activeColor: Colors.green,
     );
   }
 
