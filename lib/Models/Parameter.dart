@@ -1,5 +1,5 @@
 class Parameter {
-  int id;
+  String id;
   bool isOptional;
   String name;
   String description;

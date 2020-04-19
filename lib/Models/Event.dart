@@ -2,7 +2,7 @@ import 'package:AnalyticsGenWeb/Models/Parameter.dart';
 import 'package:AnalyticsGenWeb/Models/Tracker.dart';
 
 class Event {
-  int id;
+  String id;
   String name;
   String description;
   List<Parameter> parameters;
