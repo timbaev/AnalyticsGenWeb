@@ -5,6 +5,7 @@ import 'package:AnalyticsGenWeb/Models/Tracker.dart';
 import 'package:AnalyticsGenWeb/Tools/OnceFutureBuilder.dart';
 import 'package:AnalyticsGenWeb/Views/MultiSelectFormField.dart';
 import 'package:AnalyticsGenWeb/Views/ParameterForm.dart';
+import 'package:AnalyticsGenWeb/Views/RoundedLoadingButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -42,6 +43,8 @@ class EventFormPageState extends State<EventFormPage> {
 
   List<ParameterForm> parameterForms = [];
 
+  final _buttonController = new RoundedLoadingButtonController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,43 +53,38 @@ class EventFormPageState extends State<EventFormPage> {
           title: _buildTitle(),
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: onAddParameterClicked,
-          icon: Icon(Icons.add),
-          label: Text("Параметр")
-        ),
+            onPressed: onAddParameterClicked,
+            icon: Icon(Icons.add),
+            label: Text("Параметр")),
         body: Container(
-          child: OnceFutureBuilder<EventFormPageContent>(
-            future: () => _fetchContent(),
-            builder: (context, AsyncSnapshot<EventFormPageContent> snapshot) {
-              if (snapshot.hasData) {
-                EventFormPageContent content = snapshot.data;
+            child: OnceFutureBuilder<EventFormPageContent>(
+          future: () => _fetchContent(),
+          builder: (context, AsyncSnapshot<EventFormPageContent> snapshot) {
+            if (snapshot.hasData) {
+              EventFormPageContent content = snapshot.data;
 
-                return _buildForm(context, content);
-              } else if (snapshot.hasError) {
-                return Text("Error: ${snapshot.error}");
-              } else {
-                return Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-            },
-          )
-        ))
-    ;
+              return _buildForm(context, content);
+            } else if (snapshot.hasError) {
+              return Text("Error: ${snapshot.error}");
+            } else {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          },
+        )));
   }
 
   Future<EventFormPageContent> _fetchContent() {
     final trackersAPIURL = 'http://localhost:8080/v1/tracker';
     final parameterTypesAPIURL = 'http://localhost:8080/v1/parameter/types';
 
-    debugPrint("_fetchContent()");
-
     return Future.wait(
-        [http.get(trackersAPIURL), http.get(parameterTypesAPIURL)]
-    ).then((response) {
+            [http.get(trackersAPIURL), http.get(parameterTypesAPIURL)])
+        .then((response) {
       List trackersJSONResponse = json.decode(response[0].body);
       Map<String, dynamic> jsonData = json.decode(response[1].body);
-      
+
       var trackers = trackersJSONResponse
           .map((trackerJSON) => Tracker.fromJson(trackerJSON))
           .toList();
@@ -94,9 +92,7 @@ class EventFormPageState extends State<EventFormPage> {
       List<String> parameterTypes = jsonData['types'].cast<String>();
 
       var content = EventFormPageContent(
-        trackers: trackers,
-        parameterTypes: parameterTypes
-      );
+          trackers: trackers, parameterTypes: parameterTypes);
 
       this.content = content;
 
@@ -131,7 +127,7 @@ class EventFormPageState extends State<EventFormPage> {
               ),
               Container(
                 width: screenSize.width,
-                child: _buildConfirmButton(),
+                child: _buildConfirmButton(context),
                 margin: EdgeInsets.only(top: 20.0),
               )
             ],
@@ -155,19 +151,13 @@ class EventFormPageState extends State<EventFormPage> {
 
   TextFormField _buildNameTextFormField() {
     return TextFormField(
-      decoration: InputDecoration(
-          hintText: 'SomeScreenViewed',
-          labelText: 'Название'
-      ),
+      decoration:
+          InputDecoration(hintText: 'SomeScreenViewed', labelText: 'Название'),
       validator: _validateUpperCamelCase,
       onSaved: (String value) {
         _data.name = value;
       },
-      inputFormatters: [
-        WhitelistingTextInputFormatter(
-            RegExp("[A-Za-z]")
-        )
-      ],
+      inputFormatters: [WhitelistingTextInputFormatter(RegExp("[A-Za-z]"))],
     );
   }
 
@@ -183,7 +173,8 @@ class EventFormPageState extends State<EventFormPage> {
     );
   }
 
-  MultiSelectFormField _buildTrackerMultiSelectFormField(List<Tracker> trackers) {
+  MultiSelectFormField _buildTrackerMultiSelectFormField(
+      List<Tracker> trackers) {
     return MultiSelectFormField(
       autovalidate: false,
       titleText: 'Сервисы аналитики',
@@ -212,7 +203,7 @@ class EventFormPageState extends State<EventFormPage> {
     );
   }
 
-  RaisedButton _buildConfirmButton() {
+  RoundedLoadingButton _buildConfirmButton(BuildContext context) {
     var text = '';
 
     if (widget.eventID != null) {
@@ -221,13 +212,16 @@ class EventFormPageState extends State<EventFormPage> {
       text = "Создать";
     }
 
-    return RaisedButton(
+    return RoundedLoadingButton(
       child: Text(
         text,
         style: TextStyle(color: Colors.white),
       ),
-      onPressed: submit,
-      color: Colors.blue,
+      controller: _buttonController,
+      onPressed: () {
+        submit(context);
+      },
+      animateOnTap: false,
     );
   }
 
@@ -275,10 +269,8 @@ class EventFormPageState extends State<EventFormPage> {
 
   void onParameterDeleteClicked(ParameterFormData data) {
     setState(() {
-      var find = parameterForms.firstWhere(
-          (element) => element.data == data,
-          orElse: () => null
-      );
+      var find = parameterForms.firstWhere((element) => element.data == data,
+          orElse: () => null);
 
       if (find != null) {
         parameterForms.removeAt(parameterForms.indexOf(find));
@@ -292,25 +284,57 @@ class EventFormPageState extends State<EventFormPage> {
     });
   }
 
-  void submit() {
+  void submit(BuildContext context) {
     var allParametersValid = parameterForms.every((form) => form.isValid());
-    
+
     if (_formKey.currentState.validate() && allParametersValid) {
       _formKey.currentState.save();
 
-      var formsData = parameterForms.map((e) => e.data);
+      var parametersData = parameterForms.map((e) => e.data);
 
-      debugPrint('Event form data');
-      debugPrint('name: ${_data.name}');
-      debugPrint('description: ${_data.description}');
-      debugPrint('tracker: ${_data.trackers}');
+      Map json = {
+        'name': _data.name,
+        'description': _data.description,
+        'trackerIDs': _data.trackers,
+        'parameters': parametersData.map((parameterData) {
+          return {
+            'name': parameterData.name,
+            'description': parameterData.description,
+            'type': parameterData.type,
+            'isOptional': parameterData.isOptional
+          };
+        }).toList()
+      };
 
-      formsData.forEach((element) {
-        debugPrint('Parameter - ${element.name}');
-        debugPrint('description: ${element.description}');
-        debugPrint('type: ${element.type}');
-        debugPrint('isOptional: ${element.isOptional}');
+      JsonEncoder encoder = new JsonEncoder.withIndent('  ');
+      String prettyPrintJSON = encoder.convert(json);
+      print(prettyPrintJSON);
+
+      _buttonController.start();
+
+      Future.wait([_createEventRequest(json)]).then((response) {
+        print("Create event response: ${response[0]}");
+
+        _buttonController.success();
+
+        Navigator.pop(context);
       });
     }
+  }
+
+  Future<String> _createEventRequest(Map jsonMap) async {
+    String url = 'http://localhost:8080/v1/event';
+    Map<String, String> headers = {"Content-type": "application/json"};
+    String rawJSON = jsonEncode(jsonMap);
+
+    var response = await http.post(
+        url,
+        headers: headers,
+        body: rawJSON
+    );
+
+    String body = response.body;
+
+    return body;
   }
 }

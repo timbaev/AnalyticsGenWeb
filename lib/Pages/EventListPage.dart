@@ -7,7 +7,16 @@ import 'package:http/http.dart' as http;
 import 'package:AnalyticsGenWeb/Models/Event.dart';
 import 'package:flutter/cupertino.dart';
 
-class EventListPage extends StatelessWidget {
+class EventListPage extends StatefulWidget {
+
+  @override
+  State<StatefulWidget> createState() {
+    return EventListPageState();
+  }
+}
+
+class EventListPageState extends State<EventListPage> {
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,7 +49,11 @@ class EventListPage extends StatelessWidget {
   }
 
   void _onAddEventButtonClicked(BuildContext context) {
-    Navigator.pushNamed(context, '/new/event');
+    Navigator.pushNamed(context, '/new/event').then((res) {
+      setState(() {
+        // Do nothing, refresh FutureBuilder
+      });
+    });
   }
 
   Future<List<Event>> _fetchEventList() async {
@@ -66,14 +79,23 @@ class EventListPage extends StatelessWidget {
         });
   }
 
-  ListTile _tile(BuildContext context, Event event) => ListTile(
-        title: Text(
-          event.name,
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-        ),
-        subtitle: Text(event.description),
-        onTap: () {
-          Navigator.pushNamed(context, "/events/${event.id.toString()}");
-        },
-      );
+  ListTile _tile(BuildContext context, Event event) {
+    return ListTile(
+      title: Text(
+        event.name,
+        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+      ),
+      subtitle: Text(event.description),
+      onTap: () {
+        Navigator.pushNamed(
+            context,
+            "/events/${event.id.toString()}"
+        ).then((res) {
+          setState(() {
+            // Do nothing, refresh FutureBuilder
+          });
+        });
+      },
+    );
+  }
 }
