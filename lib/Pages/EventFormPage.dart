@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:AnalyticsGenWeb/Models/Event.dart';
 import 'package:AnalyticsGenWeb/Models/Tracker.dart';
 import 'package:AnalyticsGenWeb/Tools/OnceFutureBuilder.dart';
 import 'package:AnalyticsGenWeb/Views/MultiSelectFormField.dart';
@@ -22,7 +23,6 @@ class _EventFormData {
   String name = '';
   String description = '';
   List trackers = [];
-  List parameters = [];
 }
 
 class EventFormPage extends StatefulWidget {
@@ -58,30 +58,36 @@ class EventFormPageState extends State<EventFormPage> {
             label: Text("Параметр")),
         body: Container(
             child: OnceFutureBuilder<EventFormPageContent>(
-          future: () => _fetchContent(),
-          builder: (context, AsyncSnapshot<EventFormPageContent> snapshot) {
-            if (snapshot.hasData) {
-              EventFormPageContent content = snapshot.data;
+              future: () => _fetchContent(),
+              builder: (context, AsyncSnapshot<EventFormPageContent> snapshot) {
+                if (snapshot.hasData) {
+                  EventFormPageContent content = snapshot.data;
 
-              return _buildForm(context, content);
-            } else if (snapshot.hasError) {
-              return Text("Error: ${snapshot.error}");
-            } else {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-          },
+                  return _buildForm(context, content);
+                } else if (snapshot.hasError) {
+                  return Text("Error: ${snapshot.error}");
+                } else {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+              },
         )));
   }
 
   Future<EventFormPageContent> _fetchContent() {
-    final trackersAPIURL = 'http://localhost:8080/v1/tracker';
-    final parameterTypesAPIURL = 'http://localhost:8080/v1/parameter/types';
+    final trackersURL = 'http://localhost:8080/v1/tracker';
+    final parameterTypesURL = 'http://localhost:8080/v1/parameter/types';
 
-    return Future.wait(
-            [http.get(trackersAPIURL), http.get(parameterTypesAPIURL)])
-        .then((response) {
+    var futures = [http.get(trackersURL), http.get(parameterTypesURL)];
+    var hasEventID = (widget.eventID != null);
+
+    if (hasEventID) {
+      final eventURL = 'http://localhost:8080/v1/event/${widget.eventID}';
+      futures.add(http.get(eventURL));
+    }
+
+    return Future.wait(futures).then((response) {
       List trackersJSONResponse = json.decode(response[0].body);
       Map<String, dynamic> jsonData = json.decode(response[1].body);
 
@@ -91,19 +97,47 @@ class EventFormPageState extends State<EventFormPage> {
 
       List<String> parameterTypes = jsonData['types'].cast<String>();
 
+      if (hasEventID) {
+        Event event = Event.fromJson(json.decode(response[2].body));
+
+        this.parameterForms = event.parameters.asMap().map((index, parameter) {
+          var data = ParameterFormData();
+
+          data.name = parameter.name;
+          data.description = parameter.description;
+          data.type = parameter.type;
+          data.isOptional = parameter.isOptional;
+
+          var parameterForm = ParameterForm(
+            data: data,
+            initialTitle: "Параметр ${index + 1}",
+            titleStreamController: StreamController<String>.broadcast(),
+            parameterTypes: parameterTypes,
+          );
+
+          return MapEntry(index, parameterForm);
+        }).values.toList();
+
+        _data.name = event.name;
+        _data.description = event.description;
+        // _data.trackers = event.trackers.map((e) => e.toJson()).toList();
+      } else {
+        this.parameterForms = [
+          ParameterForm(
+            data: ParameterFormData(),
+            initialTitle: "Параметр 1",
+            titleStreamController: StreamController<String>.broadcast(),
+            parameterTypes: parameterTypes,
+          )
+        ];
+      }
+
       var content = EventFormPageContent(
-          trackers: trackers, parameterTypes: parameterTypes);
+          trackers: trackers,
+          parameterTypes: parameterTypes
+      );
 
       this.content = content;
-
-      this.parameterForms = [
-        ParameterForm(
-          data: ParameterFormData(),
-          initialTitle: "Параметр 1",
-          titleStreamController: StreamController<String>.broadcast(),
-          parameterTypes: content.parameterTypes,
-        )
-      ];
 
       return content;
     });
@@ -151,6 +185,7 @@ class EventFormPageState extends State<EventFormPage> {
 
   TextFormField _buildNameTextFormField() {
     return TextFormField(
+      initialValue: _data.name,
       decoration:
           InputDecoration(hintText: 'SomeScreenViewed', labelText: 'Название'),
       validator: _validateUpperCamelCase,
@@ -163,6 +198,7 @@ class EventFormPageState extends State<EventFormPage> {
 
   TextFormField _buildDescriptionTextFormField() {
     return TextFormField(
+      initialValue: _data.description,
       decoration: InputDecoration(
           hintText: 'Событие открытия некоторого экрана',
           labelText: 'Описание'),
@@ -174,7 +210,8 @@ class EventFormPageState extends State<EventFormPage> {
   }
 
   MultiSelectFormField _buildTrackerMultiSelectFormField(
-      List<Tracker> trackers) {
+      List<Tracker> trackers
+  ) {
     return MultiSelectFormField(
       autovalidate: false,
       titleText: 'Сервисы аналитики',

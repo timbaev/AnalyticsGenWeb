@@ -6,17 +6,16 @@ class Event {
   String name;
   String description;
   List<Parameter> parameters;
-  List<Tracker> analyticsTrackers;
+  List<Tracker> trackers;
 
-  Event(this.id, this.name, this.description, this.parameters,
-      this.analyticsTrackers);
+  Event(this.id, this.name, this.description, this.parameters, this.trackers);
 
   Event.fromJson(Map<String, dynamic> json) {
     id = json['id'];
-    if (json['analyticsTrackers'] != null) {
-      analyticsTrackers = new List<Tracker>();
-      json['analyticsTrackers'].forEach((v) {
-        analyticsTrackers.add(new Tracker.fromJson(v));
+    if (json['trackers'] != null) {
+      trackers = new List<Tracker>();
+      json['trackers'].forEach((v) {
+        trackers.add(new Tracker.fromJson(v));
       });
     }
     name = json['name'];
@@ -32,9 +31,8 @@ class Event {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
-    if (this.analyticsTrackers != null) {
-      data['analyticsTrackers'] =
-          this.analyticsTrackers.map((v) => v.toJson()).toList();
+    if (this.trackers != null) {
+      data['trackers'] = this.trackers.map((v) => v.toJson()).toList();
     }
     data['name'] = this.name;
     data['description'] = this.description;

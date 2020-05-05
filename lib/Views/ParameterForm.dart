@@ -132,6 +132,7 @@ class _ParameterFormState extends State<ParameterForm> {
 
   TextFormField _buildNameTextFormField() {
     return TextFormField(
+      initialValue: widget.data.name,
       decoration: InputDecoration(
           hintText: 'parameterName',
           labelText: 'Название'
@@ -150,6 +151,7 @@ class _ParameterFormState extends State<ParameterForm> {
 
   TextFormField _buildDescriptionTextFormField() {
     return TextFormField(
+        initialValue: widget.data.description,
         decoration: InputDecoration(
             hintText: 'Описание параметра',
             labelText: 'Описание'
