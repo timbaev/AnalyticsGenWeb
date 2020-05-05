@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:AnalyticsGenWeb/Models/Parameter.dart';
 import 'package:AnalyticsGenWeb/Views/DropDownFormField.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,10 +8,21 @@ import 'package:flutter/services.dart';
 typedef OnDelete();
 
 class ParameterFormData {
+  String id;
   String name = '';
   String description = '';
   String type = '';
   bool isOptional = false;
+
+  ParameterFormData(Parameter parameter) {
+    this.id = parameter.id;
+    this.name = parameter.name;
+    this.description = parameter.description;
+    this.type = parameter.type;
+    this.isOptional = parameter.isOptional;
+  }
+
+  ParameterFormData.empty();
 }
 
 class ParameterForm extends StatefulWidget {

@@ -15,8 +15,9 @@ import 'package:http/http.dart' as http;
 class EventFormPageContent {
   final List<Tracker> trackers;
   final List<String> parameterTypes;
+  final Event event;
 
-  EventFormPageContent({this.trackers, this.parameterTypes});
+  EventFormPageContent({this.trackers, this.parameterTypes, this.event});
 }
 
 class _EventFormData {
@@ -96,17 +97,13 @@ class EventFormPageState extends State<EventFormPage> {
           .toList();
 
       List<String> parameterTypes = jsonData['types'].cast<String>();
+      Event event;
 
       if (hasEventID) {
-        Event event = Event.fromJson(json.decode(response[2].body));
+        event = Event.fromJson(json.decode(response[2].body));
 
         this.parameterForms = event.parameters.asMap().map((index, parameter) {
-          var data = ParameterFormData();
-
-          data.name = parameter.name;
-          data.description = parameter.description;
-          data.type = parameter.type;
-          data.isOptional = parameter.isOptional;
+          var data = ParameterFormData(parameter);
 
           var parameterForm = ParameterForm(
             data: data,
@@ -124,7 +121,7 @@ class EventFormPageState extends State<EventFormPage> {
       } else {
         this.parameterForms = [
           ParameterForm(
-            data: ParameterFormData(),
+            data: ParameterFormData.empty(),
             initialTitle: "Параметр 1",
             titleStreamController: StreamController<String>.broadcast(),
             parameterTypes: parameterTypes,
@@ -134,7 +131,8 @@ class EventFormPageState extends State<EventFormPage> {
 
       var content = EventFormPageContent(
           trackers: trackers,
-          parameterTypes: parameterTypes
+          parameterTypes: parameterTypes,
+          event: event
       );
 
       this.content = content;
@@ -289,7 +287,7 @@ class EventFormPageState extends State<EventFormPage> {
 
   void onAddParameterClicked() {
     setState(() {
-      var data = ParameterFormData();
+      var data = ParameterFormData.empty();
 
       var parameterForm = ParameterForm(
         key: UniqueKey(),
@@ -327,36 +325,42 @@ class EventFormPageState extends State<EventFormPage> {
     if (_formKey.currentState.validate() && allParametersValid) {
       _formKey.currentState.save();
 
-      var parametersData = parameterForms.map((e) => e.data);
-
-      Map json = {
-        'name': _data.name,
-        'description': _data.description,
-        'trackerIDs': _data.trackers,
-        'parameters': parametersData.map((parameterData) {
-          return {
-            'name': parameterData.name,
-            'description': parameterData.description,
-            'type': parameterData.type,
-            'isOptional': parameterData.isOptional
-          };
-        }).toList()
-      };
-
-      JsonEncoder encoder = new JsonEncoder.withIndent('  ');
-      String prettyPrintJSON = encoder.convert(json);
-      print(prettyPrintJSON);
-
-      _buttonController.start();
-
-      Future.wait([_createEventRequest(json)]).then((response) {
-        print("Create event response: ${response[0]}");
-
-        _buttonController.success();
-
-        Navigator.pop(context);
-      });
+      if (widget.eventID == null) {
+        _createEvent();
+      } else {
+        _updateEvent();
+      }
     }
+  }
+
+  void _createEvent() {
+    var parametersData = parameterForms.map((e) => e.data);
+
+    Map json = {
+      'name': _data.name,
+      'description': _data.description,
+      'trackerIDs': _data.trackers,
+      'parameters': parametersData.map((parameterData) {
+        return {
+          'name': parameterData.name,
+          'description': parameterData.description,
+          'type': parameterData.type,
+          'isOptional': parameterData.isOptional
+        };
+      }).toList()
+    };
+
+    _printJSON(json);
+
+    _buttonController.start();
+
+    Future.wait([_createEventRequest(json)]).then((response) {
+      print("Create event response: ${response[0]}");
+
+      _buttonController.success();
+
+      Navigator.pop(context);
+    });
   }
 
   Future<String> _createEventRequest(Map jsonMap) async {
@@ -373,5 +377,61 @@ class EventFormPageState extends State<EventFormPage> {
     String body = response.body;
 
     return body;
+  }
+
+  void _updateEvent() {
+    var parametersData = parameterForms.map((e) => e.data).toList();
+
+    var updatedParameters = parametersData.where((parameterData) {
+      var parameter = content.event.parameters.firstWhere((parameter) {
+        return parameter.id == parameterData.id;
+      }, orElse: () => null);
+
+      return parameter != null;
+    }).toList();
+
+    var json = {
+      'name': _data.name,
+      'description': _data.description,
+      'trackerIDs': _data.trackers,
+      'updateParameters': updatedParameters.map((parameterData) {
+        return {
+          'id': parameterData.id,
+          'name': parameterData.name,
+          'description': parameterData.description,
+          'type': parameterData.type,
+          'isOptional': parameterData.isOptional
+        };
+      }).toList()
+    };
+
+    _printJSON(json);
+
+    _buttonController.start();
+
+    Future.wait([_updateEventRequest(json)]).then((response) {
+      print("Update event response: ${response[0]}");
+
+      _buttonController.success();
+
+      Navigator.pop(context);
+    });
+  }
+
+  Future<String> _updateEventRequest(Map json) async {
+    String url = 'http://localhost:8080/v1/event/${widget.eventID}';
+    Map<String, String> headers = {"Content-type": "application/json"};
+    String rawJSON = jsonEncode(json);
+
+    var response = await http.patch(url, headers: headers, body: rawJSON);
+    var body = response.body;
+
+    return body;
+  }
+
+  void _printJSON(Map json) {
+    JsonEncoder encoder = new JsonEncoder.withIndent('  ');
+    String prettyPrintJSON = encoder.convert(json);
+    print(prettyPrintJSON);
   }
 }
