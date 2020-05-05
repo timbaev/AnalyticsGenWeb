@@ -7,7 +7,6 @@ class MultiSelectFormField extends FormField<dynamic> {
   final String hintText;
   final bool required;
   final String errorText;
-  final dynamic value;
   final List dataSource;
   final String textField;
   final String valueField;
@@ -24,13 +23,12 @@ class MultiSelectFormField extends FormField<dynamic> {
   MultiSelectFormField(
       {FormFieldSetter<dynamic> onSaved,
       FormFieldValidator<dynamic> validator,
-      int initialValue,
+      dynamic initialValue,
       bool autovalidate = false,
       this.titleText = 'Title',
       this.hintText = 'Tap to select one or more',
       this.required = false,
       this.errorText = 'Please select one or more options',
-      this.value,
       this.leading,
       this.dataSource,
       this.textField,
@@ -49,11 +47,11 @@ class MultiSelectFormField extends FormField<dynamic> {
           initialValue: initialValue,
           autovalidate: autovalidate,
           builder: (FormFieldState<dynamic> state) {
-            List<Widget> _buildSelectedOptions(dynamic values, state) {
+            List<Widget> _buildSelectedOptions(state) {
               List<Widget> selectedOptions = [];
 
-              if (values != null) {
-                values.forEach((item) {
+              if (state.value != null) {
+                state.value.forEach((item) {
                   var existingItem = dataSource.singleWhere(
                       (itm) => itm[valueField] == item,
                       orElse: () => null);
@@ -69,7 +67,7 @@ class MultiSelectFormField extends FormField<dynamic> {
 
             return InkWell(
               onTap: () async {
-                List initialSelected = value;
+                List initialSelected = state.value;
                 if (initialSelected == null) {
                   initialSelected = List();
                 }
@@ -141,11 +139,11 @@ class MultiSelectFormField extends FormField<dynamic> {
                         ],
                       ),
                     ),
-                    value != null && value.length > 0
+                    state.value != null && state.value.length > 0
                         ? Wrap(
                             spacing: 8.0,
                             runSpacing: 0.0,
-                            children: _buildSelectedOptions(value, state),
+                            children: _buildSelectedOptions(state),
                           )
                         : new Container(
                             padding: EdgeInsets.only(top: 4),

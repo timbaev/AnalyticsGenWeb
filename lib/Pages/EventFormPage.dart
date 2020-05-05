@@ -120,7 +120,7 @@ class EventFormPageState extends State<EventFormPage> {
 
         _data.name = event.name;
         _data.description = event.description;
-        // _data.trackers = event.trackers.map((e) => e.toJson()).toList();
+        _data.trackers = event.trackers.map((e) => e.id).toList();
       } else {
         this.parameterForms = [
           ParameterForm(
@@ -229,7 +229,7 @@ class EventFormPageState extends State<EventFormPage> {
       cancelButtonLabel: 'ОТМЕНА',
       required: true,
       hintText: 'Выберите, в какие сервисы необходимо отправлять событие',
-      value: _data.trackers,
+      initialValue: _data.trackers,
       onSaved: (value) {
         if (value != null) {
           setState(() {
