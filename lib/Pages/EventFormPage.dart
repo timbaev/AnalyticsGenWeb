@@ -24,6 +24,7 @@ class _EventFormData {
   String name = '';
   String description = '';
   List trackers = [];
+  List<String> deletedParameterIDs = [];
 }
 
 class EventFormPage extends StatefulWidget {
@@ -104,10 +105,15 @@ class EventFormPageState extends State<EventFormPage> {
 
         this.parameterForms = event.parameters.asMap().map((index, parameter) {
           var data = ParameterFormData(parameter);
+          OnDelete onDelete;
+          if (index != 0) {
+            onDelete = () => onParameterDeleteClicked(data);
+          }
 
           var parameterForm = ParameterForm(
             data: data,
             initialTitle: "Параметр ${index + 1}",
+            onDelete: onDelete,
             titleStreamController: StreamController<String>.broadcast(),
             parameterTypes: parameterTypes,
           );
@@ -304,11 +310,16 @@ class EventFormPageState extends State<EventFormPage> {
 
   void onParameterDeleteClicked(ParameterFormData data) {
     setState(() {
-      var find = parameterForms.firstWhere((element) => element.data == data,
-          orElse: () => null);
+      var parameterForm = parameterForms.firstWhere((element) {
+        return element.data == data;
+      }, orElse: () => null);
 
-      if (find != null) {
-        parameterForms.removeAt(parameterForms.indexOf(find));
+      if (parameterForm != null) {
+        if (parameterForm.data.id != null) {
+          _data.deletedParameterIDs.add(parameterForm.data.id);
+        }
+
+        parameterForms.removeAt(parameterForms.indexOf(parameterForm));
       }
 
       parameterForms.forEach((element) {
@@ -402,7 +413,8 @@ class EventFormPageState extends State<EventFormPage> {
           'type': parameterData.type,
           'isOptional': parameterData.isOptional
         };
-      }).toList()
+      }).toList(),
+      'deleteParameters': _data.deletedParameterIDs
     };
 
     _printJSON(json);
