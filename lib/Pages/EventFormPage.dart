@@ -105,15 +105,12 @@ class EventFormPageState extends State<EventFormPage> {
 
         this.parameterForms = event.parameters.asMap().map((index, parameter) {
           var data = ParameterFormData(parameter);
-          OnDelete onDelete;
-          if (index != 0) {
-            onDelete = () => onParameterDeleteClicked(data);
-          }
 
           var parameterForm = ParameterForm(
+            key: UniqueKey(),
             data: data,
             initialTitle: "Параметр ${index + 1}",
-            onDelete: onDelete,
+            onDelete: () => onParameterDeleteClicked(data),
             titleStreamController: StreamController<String>.broadcast(),
             parameterTypes: parameterTypes,
           );
@@ -309,6 +306,11 @@ class EventFormPageState extends State<EventFormPage> {
   }
 
   void onParameterDeleteClicked(ParameterFormData data) {
+    if (parameterForms.length == 1) {
+      _showDeleteErrorDialog();
+      return;
+    }
+
     setState(() {
       var parameterForm = parameterForms.firstWhere((element) {
         return element.data == data;
@@ -316,18 +318,42 @@ class EventFormPageState extends State<EventFormPage> {
 
       if (parameterForm != null) {
         if (parameterForm.data.id != null) {
+          print("deleted parameter with ID: ${parameterForm.data.id}");
           _data.deletedParameterIDs.add(parameterForm.data.id);
         }
 
         parameterForms.removeAt(parameterForms.indexOf(parameterForm));
       }
 
-      parameterForms.forEach((element) {
-        var index = parameterForms.indexOf(element);
-
+      parameterForms.asMap().forEach((index, element) {
+        print("parameterForms.asMap().forEach(index: $index)");
         element.titleStreamController.add("Параметр ${index + 1}");
       });
     });
+  }
+
+  void _showDeleteErrorDialog() {
+    FlatButton okButton = FlatButton(
+      child: Text("OK"),
+      onPressed: () {
+        Navigator.of(context).pop();
+      }
+    );
+
+    AlertDialog alert = AlertDialog(
+      title: Text("Ошибка"),
+      content: Text("У события должен быть хотя бы один параметр"),
+      actions: <Widget>[
+        okButton
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      }
+    );
   }
 
   void submit(BuildContext context) {

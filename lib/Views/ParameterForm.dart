@@ -68,6 +68,7 @@ class _ParameterFormState extends State<ParameterForm> {
   }
 
   Form _buildForm() {
+    print("_buildForm(id: ${widget.data.id})");
     return Form(
         key: _formKey,
         child: Column(
@@ -143,6 +144,7 @@ class _ParameterFormState extends State<ParameterForm> {
   }
 
   TextFormField _buildNameTextFormField() {
+    print("_buildNameTextFormField(name: ${widget.data.name})");
     return TextFormField(
       initialValue: widget.data.name,
       decoration: InputDecoration(
