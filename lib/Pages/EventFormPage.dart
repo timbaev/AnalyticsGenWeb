@@ -401,6 +401,10 @@ class EventFormPageState extends State<EventFormPage> {
       return parameter != null;
     }).toList();
 
+    var createParameters = parametersData.where((parameterData) {
+      return parameterData.id == null;
+    }).toList();
+
     var json = {
       'name': _data.name,
       'description': _data.description,
@@ -414,7 +418,15 @@ class EventFormPageState extends State<EventFormPage> {
           'isOptional': parameterData.isOptional
         };
       }).toList(),
-      'deleteParameters': _data.deletedParameterIDs
+      'deleteParameters': _data.deletedParameterIDs,
+      'createParameters': createParameters.map((parameterData) {
+        return {
+          'name': parameterData.name,
+          'description': parameterData.description,
+          'type': parameterData.type,
+          'isOptional': parameterData.isOptional
+        };
+      }).toList()
     };
 
     _printJSON(json);
