@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:AnalyticsGenWeb/Models/Event.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:progress_dialog/progress_dialog.dart';
 
 class EventListPage extends StatefulWidget {
 
@@ -96,6 +97,92 @@ class EventListPageState extends State<EventListPage> {
           });
         });
       },
+      trailing: IconButton(
+        icon: Icon(Icons.delete_forever),
+        tooltip: 'Delete event',
+        onPressed: () {
+          _showConfirmDeleteEventDialog(context, event);
+        },
+      )
     );
+  }
+
+  void _showConfirmDeleteEventDialog(BuildContext context, Event event) {
+    FlatButton deleteButton = FlatButton(
+        child: Text(
+          "Delete",
+          style: TextStyle(color: Colors.red),
+        ),
+        onPressed: () {
+          Navigator.of(context).pop();
+          _deleteEvent(context, event);
+        }
+    );
+
+    FlatButton cancelButton = FlatButton(
+      child: Text("Cancel"),
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
+    );
+
+    AlertDialog alert = AlertDialog(
+      title: Text("Confirm delete"),
+      content: Text(
+        "Event ${event.name} will be deleted with related parameters"
+      ),
+      actions: <Widget>[
+        deleteButton,
+        cancelButton
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      }
+    );
+  }
+
+  void _deleteEvent(BuildContext context, Event event) {
+    ProgressDialog progressDialog = new ProgressDialog(
+      context,
+      type: ProgressDialogType.Normal,
+      isDismissible: false,
+      showLogs: false
+    );
+
+    progressDialog.style(
+      message: "Deleting event...",
+      borderRadius: 10.0,
+      backgroundColor: Colors.white,
+      progressWidget: CircularProgressIndicator(),
+      elevation: 10.0,
+      insetAnimCurve: Curves.easeInOut,
+      messageTextStyle: TextStyle(
+        color: Colors.black, fontSize: 19.0, fontWeight: FontWeight.w600
+      )
+    );
+
+    progressDialog.show().then((value) {
+      return _deleteEventRequest(event);
+    }).then((response) {
+      setState(() {
+        // Do nothing, refresh FutureBuilder
+      });
+
+      return progressDialog.hide();
+    });
+  }
+
+  Future<String> _deleteEventRequest(Event event) async {
+    String url = 'http://localhost:8080/v1/event/${event.id}';
+    Map<String, String> headers = {"Content-type": "application/json"};
+
+    var response = await http.delete(url, headers: headers);
+    var body = response.body;
+
+    return body;
   }
 }

@@ -341,8 +341,8 @@ class EventFormPageState extends State<EventFormPage> {
     );
 
     AlertDialog alert = AlertDialog(
-      title: Text("Ошибка"),
-      content: Text("У события должен быть хотя бы один параметр"),
+      title: Text("Error"),
+      content: Text("Event must have at least one parameter"),
       actions: <Widget>[
         okButton
       ],

@@ -17,6 +17,7 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
+  progress_dialog: ^1.2.2
   fluro: "^1.6.2"
   http: ^0.12.0+4
   flutter:
